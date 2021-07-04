@@ -26,3 +26,13 @@ func (i *InMemoryLogStore) GetLogs(name string) []string {
 	defer i.lock.RUnlock()
 	return i.store[name]
 }
+
+func (i *InMemoryLogStore) GetApps() []string {
+	i.lock.RLock()
+	defer i.lock.RUnlock()
+	var apps []string
+	for k,_ := range i.store {
+		apps = append(apps, k)
+	}
+	return apps
+}

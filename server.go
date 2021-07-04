@@ -14,6 +14,7 @@ const ApiLogsPath = "/logs/"
 type LogsStore interface {
 	GetLogs(name string) []string
 	RecordLog(name string, value string)
+	GetApps() []string
 }
 
 type ApiServer struct {
@@ -38,8 +39,14 @@ func NewApiServer(store LogsStore) *ApiServer {
 }
 
 func (s *ApiServer) rootHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	apps := s.store.GetApps()
+
+	if len(apps) < 1 {
+		w.WriteHeader(http.StatusNotFound)
+	}
+
+	w.Header().Set("content-type", jsonContentType)
+	json.NewEncoder(w).Encode(apps)
 }
 
 func (s *ApiServer) logsHandler(w http.ResponseWriter, r *http.Request) {

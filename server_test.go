@@ -22,6 +22,14 @@ func (s *StubLogStore) GetLogs(name string) []string {
 	return logs
 }
 
+func (s *StubLogStore) GetApps() []string {
+	var apps []string
+	for k,_ := range s.logs {
+		apps = append(apps, k)
+	}
+	return apps
+}
+
 func (s *StubLogStore) RecordLog(name string, value string) {
 	s.logs[name] = append(s.logs[name], value)
 }
@@ -30,13 +38,26 @@ func TestGETHome(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodGet, "/", nil)
 	response := httptest.NewRecorder()
 
-	store := StubLogStore{}
+	wantedApps := []string{
+		"AppA",
+		"AppB",
+	}
+	store := StubLogStore{
+		map[string][]string{
+			"AppA": {},
+			"AppB": {},
+		},
+	}
 	server := NewApiServer(&store)
 
 	t.Run("returns Home Page", func(t *testing.T) {
 		server.ServeHTTP(response, request)
 
-		assertResponseBody(t, response.Body.String(), "OK")
+		got := decodeBodytoStringArray(t, response.Body)
+
+		assertStatus(t, response.Code, http.StatusOK)
+		assertStringArray(t, got, wantedApps)
+		assertContentType(t, response, jsonContentType)
 	})
 }
 
@@ -63,10 +84,10 @@ func TestGETLogs(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		got := getLogsFromResponse(t, response.Body)
+		got := decodeBodytoStringArray(t, response.Body)
 
 		assertStatus(t, response.Code, http.StatusOK)
-		assertLogs(t, got, wantedLogsAppA)
+		assertStringArray(t, got, wantedLogsAppA)
 		assertContentType(t, response, jsonContentType)
 	})
 
@@ -76,10 +97,10 @@ func TestGETLogs(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		got := getLogsFromResponse(t, response.Body)
+		got := decodeBodytoStringArray(t, response.Body)
 
 		assertStatus(t, response.Code, http.StatusOK)
-		assertLogs(t, got, wantedLogsAppB)
+		assertStringArray(t, got, wantedLogsAppB)
 		assertContentType(t, response, jsonContentType)
 	})
 }
@@ -110,7 +131,7 @@ func TestStoreLogs(t *testing.T) {
 	})
 }
 
-func getLogsFromResponse(t testing.TB, body io.Reader) (logs []string) {
+func decodeBodytoStringArray(t testing.TB, body io.Reader) (logs []string) {
 	t.Helper()
 	err := json.NewDecoder(body).Decode(&logs)
 
@@ -131,7 +152,7 @@ func newGetLogsRequest(name string) *http.Request {
 	return req
 }
 
-func assertLogs(t testing.TB, got, want []string) {
+func assertStringArray(t testing.TB, got, want []string) {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
