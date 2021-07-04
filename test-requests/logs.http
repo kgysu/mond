@@ -1,0 +1,18 @@
+### GET logs of AppA
+GET http://localhost:5000/logs/AppA
+Accept: application/json
+
+
+### POST new log for AppA
+POST http://localhost:5000/logs/AppA
+Content-Type: text/plain
+
+Log a1
+
+
+
+### POST new real world example log for AppA
+POST http://localhost:5000/logs/AppA
+Content-Type: text/plain
+
+10.129.38.1 - - [02/Jul/2021:22:50:59 +0200] "GET /futures HTTP/1.1" 200 7280 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" "92.104.237.155"
