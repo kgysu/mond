@@ -14,23 +14,26 @@ import (
 const SampleLogA1 = "Log a1"
 
 type StubLogStore struct {
-	logs map[string][]string
+	logs map[string][]*LogEntry
 }
 
-func (s *StubLogStore) GetLogs(name string) []string {
-	logs := s.logs[name]
+func (s *StubLogStore) GetRawLogs(name string) []string {
+	var logs []string
+	for _, log := range s.logs[name] {
+		logs = append(logs, log.raw)
+	}
 	return logs
 }
 
 func (s *StubLogStore) GetApps() []string {
 	var apps []string
-	for k,_ := range s.logs {
+	for k, _ := range s.logs {
 		apps = append(apps, k)
 	}
 	return apps
 }
 
-func (s *StubLogStore) RecordLog(name string, value string) {
+func (s *StubLogStore) RecordLog(name string, value *LogEntry) {
 	s.logs[name] = append(s.logs[name], value)
 }
 
@@ -43,7 +46,7 @@ func TestGETHome(t *testing.T) {
 		"AppB",
 	}
 	store := StubLogStore{
-		map[string][]string{
+		map[string][]*LogEntry{
 			"AppA": {},
 			"AppB": {},
 		},
@@ -71,9 +74,9 @@ func TestGETLogs(t *testing.T) {
 		"log b2",
 	}
 	store := StubLogStore{
-		map[string][]string{
-			"AppA": wantedLogsAppA,
-			"AppB": wantedLogsAppB,
+		map[string][]*LogEntry{
+			"AppA": {{raw: wantedLogsAppA[0]}, {raw: wantedLogsAppA[1]}},
+			"AppB": {{raw: wantedLogsAppB[0]}, {raw: wantedLogsAppB[1]}},
 		},
 	}
 	server := NewApiServer(&store)
@@ -107,11 +110,11 @@ func TestGETLogs(t *testing.T) {
 
 func TestStoreLogs(t *testing.T) {
 	store := StubLogStore{
-		map[string][]string{},
+		map[string][]*LogEntry{},
 	}
 	server := NewApiServer(&store)
 
-	t.Run("it records logs on POST", func(t *testing.T) {
+	t.Run("it records and analyzes logs on POST", func(t *testing.T) {
 		app := "App1"
 
 		request := newPostLogRequest(app)
@@ -125,10 +128,21 @@ func TestStoreLogs(t *testing.T) {
 			t.Fatalf("got %d calls to RecordLog want %d", len(store.logs), 1)
 		}
 
-		if store.logs[app][0] != SampleLogA1 {
+		if store.logs[app][0].raw != SampleLogA1 {
 			t.Errorf("did not store correct log got %q want %q", store.logs[app][0], SampleLogA1)
 		}
 	})
+}
+
+func decodeBodytoLogEntryArray(t testing.TB, body io.Reader) (logs []*LogEntry) {
+	t.Helper()
+	err := json.NewDecoder(body).Decode(&logs)
+
+	if err != nil {
+		t.Fatalf("Unable to parse response from server %v into slice of LogEntry, '%v'", body, err)
+	}
+
+	return
 }
 
 func decodeBodytoStringArray(t testing.TB, body io.Reader) (logs []string) {
@@ -136,7 +150,7 @@ func decodeBodytoStringArray(t testing.TB, body io.Reader) (logs []string) {
 	err := json.NewDecoder(body).Decode(&logs)
 
 	if err != nil {
-		t.Fatalf("Unable to parse response from server %q into slice of Player, '%v'", body, err)
+		t.Fatalf("Unable to parse response from server %q into string array, '%v'", body, err)
 	}
 
 	return
@@ -150,6 +164,13 @@ func newPostLogRequest(name string) *http.Request {
 func newGetLogsRequest(name string) *http.Request {
 	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf(ApiLogsPath+"%s", name), nil)
 	return req
+}
+
+func assertLogEntryArray(t testing.TB, got, want []*LogEntry) {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v want %v", got, want)
+	}
 }
 
 func assertStringArray(t testing.TB, got, want []string) {

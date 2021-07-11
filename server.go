@@ -10,12 +10,14 @@ import (
 )
 
 const ApiLogsPath = "/logs/"
+const ApiAnalyticsPath = "/analytics/"
 
 type LogsStore interface {
-	GetLogs(name string) []string
-	RecordLog(name string, value string)
+	GetRawLogs(name string) []string
+	RecordLog(name string, value *LogEntry)
 	GetApps() []string
 }
+
 
 type ApiServer struct {
 	store LogsStore
@@ -31,6 +33,7 @@ func NewApiServer(store LogsStore) *ApiServer {
 
 	router := http.NewServeMux()
 	router.Handle(ApiLogsPath, http.HandlerFunc(s.logsHandler))
+	//router.Handle(ApiAnalyticsPath, http.HandlerFunc(s.analyticsHandler))
 	router.Handle("/", http.HandlerFunc(s.rootHandler))
 
 	s.Handler = router
@@ -59,8 +62,16 @@ func (s *ApiServer) logsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *ApiServer) analyticsHandler(w http.ResponseWriter, r *http.Request) {
+	//name := strings.TrimPrefix(r.URL.Path, ApiLogsPath)
+	//switch r.Method {
+	//case http.MethodGet:
+	//	//s.showAnalytics(w, name)
+	//}
+}
+
 func (s *ApiServer) showLogs(w http.ResponseWriter, name string) {
-	logs := s.store.GetLogs(name)
+	logs := s.store.GetRawLogs(name)
 
 	if len(logs) < 1 {
 		w.WriteHeader(http.StatusNotFound)
@@ -77,6 +88,6 @@ func (s *ApiServer) processLog(w http.ResponseWriter, name string, body io.ReadC
 		http.Error(w, "can't read body", http.StatusBadRequest)
 		return
 	}
-	s.store.RecordLog(name, string(bodyContent))
+	s.store.RecordLog(name, ParseRawLog(string(bodyContent)))
 	w.WriteHeader(http.StatusAccepted)
 }

@@ -1,37 +1,57 @@
 package main
 
-import "sync"
+import (
+	"time"
+)
 
 func NewInMemoryLogStore() *InMemoryLogStore {
 	return &InMemoryLogStore{
-		map[string][]string{},
-		sync.RWMutex{},
+		map[string][]*LogEntry{},
+		LogStatistic{
+			map[string]int{},
+			map[int]int{},
+		},
 	}
 }
 
+type LogEntry struct {
+	timestamp     int64
+	path          string
+	method        string
+	http          string
+	ip            string
+	status        string
+	xForwardedFor string
+	raw           string
+}
+
+type LogStatistic struct {
+	countPerIp  map[string]int
+	countPerDay map[int]int
+}
+
 type InMemoryLogStore struct {
-	store map[string][]string
-	// A mutex is used to synchronize read/write access to the map
-	lock sync.RWMutex
+	store map[string][]*LogEntry
+	stats LogStatistic
 }
 
-func (i *InMemoryLogStore) RecordLog(name string, value string) {
-	i.lock.Lock()
-	defer i.lock.Unlock()
+func (i *InMemoryLogStore) RecordLog(name string, value *LogEntry) {
 	i.store[name] = append(i.store[name], value)
+	i.stats.countPerIp[name]++
+	i.stats.countPerDay[time.Now().YearDay()]++
 }
 
-func (i *InMemoryLogStore) GetLogs(name string) []string {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
-	return i.store[name]
+func (i *InMemoryLogStore) GetRawLogs(name string) []string {
+	var logs []string
+	for _, log := range i.store[name] {
+		logs = append(logs, log.raw)
+	}
+	return logs
 }
 
 func (i *InMemoryLogStore) GetApps() []string {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
 	var apps []string
-	for k,_ := range i.store {
+	for k, _ := range i.store {
 		apps = append(apps, k)
 	}
 	return apps
