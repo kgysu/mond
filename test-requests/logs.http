@@ -8,6 +8,11 @@ GET http://localhost:5000/logs/AppA
 Accept: application/json
 
 
+### GET logs of AppB
+GET http://localhost:5000/logs/AppB
+Accept: application/json
+
+
 ### POST new log for AppA
 POST http://localhost:5000/logs/AppB
 Content-Type: text/plain

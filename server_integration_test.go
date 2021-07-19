@@ -1,4 +1,4 @@
-package main
+package mond
 
 import (
 	"net/http"
@@ -7,7 +7,12 @@ import (
 )
 
 func TestRecordingLogsAndRetrievingThem(t *testing.T) {
-	store := NewInMemoryLogStore()
+	database, cleanDatabase := createTempFile(t, `[]`)
+	defer cleanDatabase()
+	store, err := NewFileSystemAppsStore(database)
+
+	assertNoError(t, err)
+
 	server := NewApiServer(store)
 	app := "AppA"
 
@@ -23,7 +28,7 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusOK)
-		got := decodeBodytoStringArray(t, response.Body)
+		got := decodeBodyToStringArray(t, response.Body)
 		want := []string{
 			app,
 			"Other",
@@ -36,12 +41,12 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 		server.ServeHTTP(response, newGetLogsRequest(app))
 		assertStatus(t, response.Code, http.StatusOK)
 
-		got := decodeBodytoStringArray(t, response.Body)
-		want := []string{
-			SampleLogA1,
-			SampleLogA1,
-			SampleLogA1,
+		got := decodeBodyToAccessLogs(t, response.Body)
+		want := AccessLogs{
+			{Raw: SampleLogA1},
+			{Raw: SampleLogA1},
+			{Raw: SampleLogA1},
 		}
-		assertStringArray(t, got, want)
+		assertAccessLogsEquals(t, got, want)
 	})
 }

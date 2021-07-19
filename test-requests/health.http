@@ -1,0 +1,28 @@
+### GET health of AppA
+GET http://localhost:5000/health/AppA
+Accept: application/json
+
+
+### POST health of AppA
+POST http://localhost:5000/health/AppA
+Content-Type: application/json
+
+{
+  "status": "UP",
+  "timestamp": 1
+}
+
+
+### GET health of AppB
+GET http://localhost:5000/health/AppB
+Accept: application/json
+
+
+### POST health of AppB
+POST http://localhost:5000/health/AppB
+Content-Type: application/json
+
+{
+  "status": "DOWN",
+  "timestamp": 0
+}

@@ -1,4 +1,4 @@
-package main
+package mond
 
 import (
 	"fmt"
@@ -7,18 +7,16 @@ import (
 	"time"
 )
 
-func ParseRawLog(raw string) *LogEntry {
-	logEntry := new(LogEntry)
-	logEntry.ip = findIp(raw)
-	logEntry.timestamp = findTimeAndParse(raw)
-	logEntry.status = findStatus(raw)
-	path, method, http := findPathMethodHttp(raw)
-	logEntry.path = path
-	logEntry.method = method
-	logEntry.http = http
-	logEntry.xForwardedFor = findxForwardedFor(raw)
-	logEntry.raw = raw
-	return logEntry
+func ParseRawLog(raw string) AccessLog {
+	accessLog := new(AccessLog)
+	accessLog.Ip = findIp(raw)
+	accessLog.Timestamp = findTimeAndParse(raw)
+	accessLog.Status = findStatus(raw)
+	path, _, _ := findPathMethodHttp(raw)
+	accessLog.Path = path
+	accessLog.RemoteIp = findxForwardedFor(raw)
+	accessLog.Raw = raw
+	return *accessLog
 }
 
 func findIp(raw string) string {
@@ -38,7 +36,7 @@ func findTimeAndParse(raw string) int64 {
 			return t.UnixNano()
 		}
 	}
-	return -1
+	return 0
 }
 
 func findStatus(raw string) string {
