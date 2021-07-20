@@ -3,7 +3,7 @@
 # go binary
 mond-api
 
-cmd/apiserver/logs.db.json
+cmd/apiserver/apps.db.json
 
 # compiled output
 /dist

@@ -17,6 +17,7 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 	app := "AppA"
 
 	server.ServeHTTP(httptest.NewRecorder(), newPostLogRequest(app))
+	server.ServeHTTP(httptest.NewRecorder(), newPostHealthRequest(app))
 	server.ServeHTTP(httptest.NewRecorder(), newPostLogRequest(app))
 	server.ServeHTTP(httptest.NewRecorder(), newPostLogRequest(app))
 	server.ServeHTTP(httptest.NewRecorder(), newPostLogRequest("Other"))
@@ -48,5 +49,15 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 			{Raw: SampleLogA1},
 		}
 		assertAccessLogsEquals(t, got, want)
+	})
+
+	t.Run("get health", func(t *testing.T) {
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, newGetHealthRequest(app))
+		assertStatus(t, response.Code, http.StatusOK)
+
+		got := decodeBodyToHealth(t, response.Body)
+		want := HEALTHY
+		assertHealthEquals(t, got, want)
 	})
 }

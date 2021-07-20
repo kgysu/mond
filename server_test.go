@@ -59,18 +59,10 @@ func TestGETLogsAndHealth(t *testing.T) {
 		{Raw: "log b1"},
 		{Raw: "log b2"},
 	}
-	wantedHealthA := HealthCheck{
-		Status:    "UP",
-		Timestamp: 1,
-	}
-	wantedHealthB := HealthCheck{
-		Status:    "DOWN",
-		Timestamp: 0,
-	}
 	store := StubLogStore{
 		[]AppAccessLogs{
-			{"AppA", wantedHealthA, wantedLogsAppA},
-			{"AppB", wantedHealthB, wantedLogsAppB},
+			{"AppA", HEALTHY, wantedLogsAppA},
+			{"AppB", UNHEALTHY, wantedLogsAppB},
 		},
 	}
 	server := NewApiServer(&store)
@@ -97,7 +89,7 @@ func TestGETLogsAndHealth(t *testing.T) {
 		got := decodeBodyToHealth(t, response.Body)
 
 		assertStatus(t, response.Code, http.StatusOK)
-		assertHealthEquals(t, got, wantedHealthA)
+		assertHealthEquals(t, got, HEALTHY)
 		assertContentType(t, response, jsonContentType)
 	})
 
@@ -123,7 +115,7 @@ func TestGETLogsAndHealth(t *testing.T) {
 		got := decodeBodyToHealth(t, response.Body)
 
 		assertStatus(t, response.Code, http.StatusOK)
-		assertHealthEquals(t, got, wantedHealthB)
+		assertHealthEquals(t, got, UNHEALTHY)
 		assertContentType(t, response, jsonContentType)
 	})
 }
@@ -161,11 +153,7 @@ func TestStoreLogs(t *testing.T) {
 		if len(store.AppAccessLogs) != 1 {
 			t.Fatalf("got %d calls to RecordLog want %d", len(store.AppAccessLogs), 1)
 		}
-		want := HealthCheck{
-			Status:    "UP",
-			Timestamp: 1,
-		}
-		assertHealthEquals(t, store.AppAccessLogs[0].Health, want)
+		assertHealthEquals(t, store.AppAccessLogs[0].Health, HEALTHY)
 	})
 }
 

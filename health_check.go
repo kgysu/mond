@@ -11,6 +11,11 @@ var UNHEALTHY = HealthCheck{
 	Timestamp: 0,
 }
 
+var HEALTHY = HealthCheck{
+	Status:    "UP",
+	Timestamp: 1,
+}
+
 type HealthCheck struct {
 	Status string `json:"status"`
 	Timestamp int64 `json:"timestamp"`
