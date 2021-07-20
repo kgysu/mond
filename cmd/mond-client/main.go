@@ -4,6 +4,7 @@ import (
 	"fmt"
 	mond "mond-api"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,17 +12,26 @@ import (
 )
 
 func main() {
-	reportUrl := "http://localhost:5000/health/Test"
-	websites := []string{
-		"http://localhost:5001/",
+	args := os.Args[1:]
+	if len(args) < 2 {
+		fmt.Println("Too few arguments")
+		return
 	}
+
+	reportUrl := args[0]
+	_, err := url.ParseRequestURI(reportUrl)
+	if err != nil {
+		fmt.Printf("Invalid URL: %s", err.Error())
+		return
+	}
+	websites := args[1:]
+	fmt.Printf("Reporting health to %s \n from %v \n", reportUrl, websites)
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	ticker := time.NewTicker(5 * time.Second)
 	quit := make(chan struct{})
-	//go func() {
 	for {
 		select {
 		case <-ticker.C:
@@ -45,5 +55,4 @@ func main() {
 			return
 		}
 	}
-	//}()
 }
