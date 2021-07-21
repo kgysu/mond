@@ -14,7 +14,7 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 	assertNoError(t, err)
 
 	server := NewApiServer(store)
-	app := "AppA"
+	app := "appa"
 
 	server.ServeHTTP(httptest.NewRecorder(), newPostLogRequest(app))
 	server.ServeHTTP(httptest.NewRecorder(), newPostHealthRequest(app))
@@ -32,7 +32,7 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 		got := decodeBodyToStringArray(t, response.Body)
 		want := []string{
 			app,
-			"Other",
+			"other",
 		}
 		assertStringArray(t, got, want)
 	})

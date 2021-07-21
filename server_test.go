@@ -20,12 +20,12 @@ func TestGETHome(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		wantedApps := []string{
-			"AppA",
-			"AppB",
+			"appa",
+			"appb",
 		}
 		store := StubLogStore{[]AppAccessLogs{
-			{"AppA", HealthCheck{}, AccessLogs{{Raw: SampleLogA1}}},
-			{"AppB", HealthCheck{}, AccessLogs{{Raw: SampleLogA1}}},
+			{"appa", HealthCheck{}, AccessLogs{{Raw: SampleLogA1}}},
+			{"appb", HealthCheck{}, AccessLogs{{Raw: SampleLogA1}}},
 		}}
 
 		server := NewApiServer(&store)
@@ -61,8 +61,8 @@ func TestGETLogsAndHealth(t *testing.T) {
 	}
 	store := StubLogStore{
 		[]AppAccessLogs{
-			{"AppA", HEALTHY, wantedLogsAppA},
-			{"AppB", UNHEALTHY, wantedLogsAppB},
+			{"appa", HEALTHY, wantedLogsAppA},
+			{"appb", UNHEALTHY, wantedLogsAppB},
 		},
 	}
 	server := NewApiServer(&store)

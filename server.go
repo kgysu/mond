@@ -61,7 +61,7 @@ func (s *ApiServer) rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ApiServer) logsHandler(w http.ResponseWriter, r *http.Request) {
-	appName := strings.TrimPrefix(r.URL.Path, ApiAccessLogsPath)
+	appName := strings.ToLower(strings.TrimPrefix(r.URL.Path, ApiAccessLogsPath))
 	switch r.Method {
 	case http.MethodPost:
 		s.processLog(w, appName, r.Body)
@@ -71,7 +71,7 @@ func (s *ApiServer) logsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ApiServer) healthHandler(w http.ResponseWriter, r *http.Request) {
-	name := strings.TrimPrefix(r.URL.Path, ApiHealthPath)
+	name := strings.ToLower(strings.TrimPrefix(r.URL.Path, ApiHealthPath))
 	switch r.Method {
 	case http.MethodPost:
 		s.processHealth(w, name, r.Body)
