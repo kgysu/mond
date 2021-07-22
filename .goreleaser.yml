@@ -9,11 +9,13 @@ before:
 builds:
   - id: "apiserver"
     main: ./cmd/apiserver
+    binary: apiserver
     env:
       - CGO_ENABLED=0
     goos:
       - linux
   - id: "mond"
+    binary: mond
     main: ./cmd/mond-client
     env:
       - CGO_ENABLED=0
