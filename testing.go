@@ -4,6 +4,10 @@ type StubLogStore struct {
 	AppAccessLogs Apps
 }
 
+func (s *StubLogStore) GetApps() Apps {
+	return s.AppAccessLogs
+}
+
 func (s *StubLogStore) GetAccessLogs(name string) AccessLogs {
 	app := s.AppAccessLogs.Find(name)
 	if app != nil {

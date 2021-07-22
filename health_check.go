@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 )
 
 var UNHEALTHY = HealthCheck{
@@ -30,4 +31,8 @@ func NewHealthCheck(rdr io.Reader) (*HealthCheck, error) {
 	}
 
 	return check, err
+}
+
+func (h *HealthCheck) GetFormattedTime() string {
+	return time.Unix(h.Timestamp, 0).Format("02.01.2006 15:04:05")
 }

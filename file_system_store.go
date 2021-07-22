@@ -74,6 +74,10 @@ func (f *FileSystemAppsStore) GetAppNames() []string {
 	return apps
 }
 
+func (f *FileSystemAppsStore) GetApps() Apps {
+	return f.apps
+}
+
 func (f *FileSystemAppsStore) GetAccessLogs(name string) AccessLogs {
 	app := f.apps.Find(name)
 	if app != nil {

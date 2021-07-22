@@ -14,20 +14,20 @@ func CheckWebsite(url string) HealthCheck {
 	if err != nil {
 		return HealthCheck{
 			Status:    "DOWN",
-			Timestamp: time.Now().UnixNano(),
+			Timestamp: time.Now().Unix(),
 		}
 	}
 
 	if response.StatusCode != http.StatusOK {
 		return HealthCheck{
 			Status:    response.Status,
-			Timestamp: time.Now().UnixNano(),
+			Timestamp: time.Now().Unix(),
 		}
 	}
 
 	return HealthCheck{
 		Status:    "UP",
-		Timestamp: time.Now().UnixNano(),
+		Timestamp: time.Now().Unix(),
 	}
 }
 
@@ -63,6 +63,7 @@ type WebsiteHealthReporter func(string, string) (*http.Response, error)
 
 func Report(url string, content string) (*http.Response, error) {
 	resp, err := http.Post(url, jsonContentType, strings.NewReader(content))
+	//req.SetBasicAuth(username, password)
 	if err != nil {
 		return nil, fmt.Errorf("could not report: %v \n", err)
 	}

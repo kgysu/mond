@@ -4,6 +4,8 @@
 mond-api
 
 cmd/apiserver/apps.db.json
+cmd/apiserver/asset
+cmd/apiserver/html
 
 # compiled output
 /dist

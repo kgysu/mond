@@ -33,7 +33,7 @@ func findTimeAndParse(raw string) int64 {
 			fmt.Printf("cannot parse time %q caused by %v", timeString, err)
 			return 0
 		} else {
-			return t.UnixNano()
+			return t.Unix()
 		}
 	}
 	return 0
