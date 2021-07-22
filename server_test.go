@@ -12,37 +12,47 @@ import (
 )
 
 const SampleLogA1 = "Log a1"
+var testInfo = SecurityUserInfo{
+	Username: "test",
+	Password: "test",
+}
 
 func TestGETHome(t *testing.T) {
 
-	t.Run("returns Home Page (App Names)", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+	t.Run("returns Home Page on valid credentials", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, HomePath, nil)
+		request.SetBasicAuth(testInfo.Username, testInfo.Password)
 		response := httptest.NewRecorder()
+		emptyStore := StubLogStore{[]AppAccessLogs{{
+			App:    "Test",
+			Health: HealthCheck{},
+			Logs:   nil,
+		}}}
+		server := NewApiServer(&emptyStore, testInfo)
 
-		wantedApps := []string{
-			"appa",
-			"appb",
-		}
-		store := StubLogStore{[]AppAccessLogs{
-			{"appa", HealthCheck{}, AccessLogs{{Raw: SampleLogA1}}},
-			{"appb", HealthCheck{}, AccessLogs{{Raw: SampleLogA1}}},
-		}}
-
-		server := NewApiServer(&store)
 		server.ServeHTTP(response, request)
 
-		got := decodeBodyToStringArray(t, response.Body)
-
 		assertStatus(t, response.Code, http.StatusOK)
-		assertContentType(t, response, jsonContentType)
-		assertStringArray(t, got, wantedApps)
 	})
 
-	t.Run("returns Home Page (empty) on empty store", func(t *testing.T) {
+	t.Run("returns 401 Unauthorized on invalid credentials", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+		request.SetBasicAuth("some", "other")
 		response := httptest.NewRecorder()
 		emptyStore := StubLogStore{[]AppAccessLogs{}}
-		server := NewApiServer(&emptyStore)
+		server := NewApiServer(&emptyStore, testInfo)
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+	})
+
+	t.Run("returns StatusNotFound on valid credentials and empty store", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+		request.SetBasicAuth(testInfo.Username, testInfo.Password)
+		response := httptest.NewRecorder()
+		emptyStore := StubLogStore{[]AppAccessLogs{}}
+		server := NewApiServer(&emptyStore, testInfo)
 
 		server.ServeHTTP(response, request)
 
@@ -65,7 +75,7 @@ func TestGETLogsAndHealth(t *testing.T) {
 			{"appb", UNHEALTHY, wantedLogsAppB},
 		},
 	}
-	server := NewApiServer(&store)
+	server := NewApiServer(&store, testInfo)
 
 	t.Run("returns Logs of App A", func(t *testing.T) {
 		request := newGetLogsRequest("AppA")
@@ -78,6 +88,21 @@ func TestGETLogsAndHealth(t *testing.T) {
 		assertStatus(t, response.Code, http.StatusOK)
 		assertAccessLogsEquals(t, got, wantedLogsAppA)
 		assertContentType(t, response, jsonContentType)
+	})
+
+	t.Run("returns RawLogs of App A", func(t *testing.T) {
+		request := newGetRawLogsRequest("AppA")
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		got := response.Body.String()
+		want := "log a1\nlog a2\n"
+		assertStatus(t, response.Code, http.StatusOK)
+		if got != want {
+			t.Errorf("did not get correct rawlogs, got %q, want %q", got, want)
+		}
+		assertContentType(t, response, textContentType)
 	})
 
 	t.Run("returns Health of AppA", func(t *testing.T) {
@@ -124,7 +149,7 @@ func TestStoreLogs(t *testing.T) {
 
 	t.Run("it records and analyzes logs on POST", func(t *testing.T) {
 		store := StubLogStore{}
-		server := NewApiServer(&store)
+		server := NewApiServer(&store, testInfo)
 		app := "App1"
 		request := newPostLogRequest(app)
 		response := httptest.NewRecorder()
@@ -142,7 +167,7 @@ func TestStoreLogs(t *testing.T) {
 
 	t.Run("it records health on POST", func(t *testing.T) {
 		store := StubLogStore{}
-		server := NewApiServer(&store)
+		server := NewApiServer(&store, testInfo)
 		app := "AppA"
 		request := newPostHealthRequest(app)
 		response := httptest.NewRecorder()
@@ -160,6 +185,16 @@ func TestStoreLogs(t *testing.T) {
 func decodeBodyToStringArray(t testing.TB, body io.Reader) (logs []string) {
 	t.Helper()
 	err := json.NewDecoder(body).Decode(&logs)
+
+	if err != nil {
+		t.Fatalf("Unable to parse response from server '%v' into string array, '%v'", body, err)
+	}
+	return
+}
+
+func decodeBodyToApps(t testing.TB, body io.Reader) (apps Apps) {
+	t.Helper()
+	err := json.NewDecoder(body).Decode(&apps)
 
 	if err != nil {
 		t.Fatalf("Unable to parse response from server '%v' into string array, '%v'", body, err)
@@ -202,6 +237,11 @@ func newGetLogsRequest(name string) *http.Request {
 	return req
 }
 
+func newGetRawLogsRequest(name string) *http.Request {
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf(ApiRawLogsPath+"%s", name), nil)
+	return req
+}
+
 func newGetHealthRequest(name string) *http.Request {
 	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf(ApiHealthPath+"%s", name), nil)
 	return req
@@ -212,6 +252,13 @@ func assertStringArray(t testing.TB, got, want []string) {
 	if len(want) == 0 && len(got) == 0 {
 		return
 	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v want %v", got, want)
+	}
+}
+
+func assertApps(t testing.TB, got, want Apps) {
+	t.Helper()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
 	}

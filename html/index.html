@@ -20,25 +20,21 @@
     <div class="dashboard">
 
         {{range .}}
-        {{if eq .Health.Status "UP"}}
-        <div class="card border-success" style="width: 18rem;">
-            {{else}}
-            <div class="card border-danger" style="width: 18rem;">
-                {{end}}
-                <div class="card-header">
-                    {{.App}}
-                </div>
-                <div class="card-body">
-                    <div class="card-text">
-                        {{.Health.Status}} <br/>
-                        {{.Health.GetFormattedTime}} <br/>
-                        <a href="/logs/{{.App}}">Logs</a>
-                    </div>
+        <div class="card {{.Health.GetCardClass}}" style="width: 18rem;">
+            <div class="card-header">
+                {{.App}}
+            </div>
+            <div class="card-body">
+                <div class="card-text">
+                    {{.Health.Status}} <br/>
+                    {{.Health.GetFormattedTime}} <br/>
+                    <a href="/logs/{{.App}}">Logs</a> <br/>
+                    <a href="/rawlogs/{{.App}}">Raw Logs</a>
                 </div>
             </div>
-            {{end}}
-
         </div>
+        {{end}}
+    </div>
 </main>
 
 <!-- Optional JavaScript; choose one of the two! -->

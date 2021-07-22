@@ -1,4 +1,33 @@
 
+html, body {
+    /*height: 100%;*/
+}
+
+body {
+    margin: 0;
+    /*font-family: Roboto, "Helvetica Neue", sans-serif;*/
+
+    background-color: #313131;
+    color: #ddd;
+}
+
+a {
+    color: #dddddd;
+}
+
+.main-content {
+    flex: 1 1 auto;
+    margin: 32px;
+    width: calc(100% - 32);
+}
+
 .dashboard {
-    background-color: red;
+    display: flex;
+    flex: 1 1 auto;
+    margin: 32px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-around;
+    align-content: center;
+    /*background-color: red;*/
 }

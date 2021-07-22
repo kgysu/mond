@@ -13,7 +13,7 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 
 	assertNoError(t, err)
 
-	server := NewApiServer(store)
+	server := NewApiServer(store, testInfo)
 	app := "appa"
 
 	server.ServeHTTP(httptest.NewRecorder(), newPostLogRequest(app))
@@ -23,18 +23,26 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 	server.ServeHTTP(httptest.NewRecorder(), newPostLogRequest("Other"))
 
 	t.Run("get Apps", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+		request, _ := http.NewRequest(http.MethodGet, ApiAppsPath, nil)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusOK)
-		got := decodeBodyToStringArray(t, response.Body)
-		want := []string{
-			app,
-			"other",
+		got := decodeBodyToApps(t, response.Body)
+		want := Apps{
+			{
+				App:    app,
+				Health: HealthCheck{Status: "UP", Timestamp: 1},
+				Logs:   AccessLogs{{Raw: SampleLogA1},{Raw: SampleLogA1},{Raw: SampleLogA1}},
+			},
+			{
+				App:    "other",
+				Health: HealthCheck{},
+				Logs:   AccessLogs{{Raw: SampleLogA1}},
+			},
 		}
-		assertStringArray(t, got, want)
+		assertApps(t, got, want)
 	})
 
 	t.Run("get logs", func(t *testing.T) {

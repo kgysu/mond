@@ -18,7 +18,7 @@ const MondStartCmd = "MOND_START_CMD"
 const AppName = "test"
 
 func checkEnv() (string, string, error) {
-	os.Setenv(MondStartCmd, "ping 127.0.0.1") // TODO remove, used for testing only
+	//os.Setenv(MondStartCmd, "ping 127.0.0.1") // TODO remove, used for testing only
 	startCmdWithArgs := os.Getenv(MondStartCmd)
 	if startCmdWithArgs == "" {
 		return "", "", fmt.Errorf("no start command defined, set %s for current env", MondStartCmd)

@@ -36,3 +36,10 @@ func NewHealthCheck(rdr io.Reader) (*HealthCheck, error) {
 func (h *HealthCheck) GetFormattedTime() string {
 	return time.Unix(h.Timestamp, 0).Format("02.01.2006 15:04:05")
 }
+
+func (h *HealthCheck) GetCardClass() string {
+	if h.Status == "UP" {
+		return "bg-success"
+	}
+	return "bg-danger"
+}

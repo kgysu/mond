@@ -50,7 +50,7 @@ func (s *StubLogStore) RecordHealth(name string, check HealthCheck) {
 		app.Health = check
 	} else {
 		s.AppAccessLogs = append(s.AppAccessLogs, AppAccessLogs{
-			App:  name,
+			App:    name,
 			Health: check,
 		})
 	}

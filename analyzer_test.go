@@ -12,7 +12,7 @@ func TestAnalyzeLogStatement(t *testing.T) {
 		got := ParseRawLog(rawLog)
 		want := AccessLog{
 			Ip:        "10.129.38.1",
-			Timestamp: 1625259059000000000,
+			Timestamp: 1625259059,
 			Status:    "200",
 			Path:      "/futures",
 			//method: "GET",
