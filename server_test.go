@@ -19,41 +19,47 @@ var testInfo = SecurityUserInfo{
 
 func TestGETHome(t *testing.T) {
 
-	t.Run("returns Home Page on valid credentials", func(t *testing.T) {
+	t.Run("returns OK on HomePath", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, HomePath, nil)
+		response := httptest.NewRecorder()
+		server := NewApiServer(&StubLogStore{}, testInfo)
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusOK)
+	})
+
+	t.Run("returns Dashboard on valid credentials", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, DashboardPath, nil)
 		request.SetBasicAuth(testInfo.Username, testInfo.Password)
 		response := httptest.NewRecorder()
-		emptyStore := StubLogStore{[]AppAccessLogs{{
-			App:    "Test",
+		emptyStore := StubLogStore{[]App{{
+			Name:   "Test",
 			Health: HealthCheck{},
 			Logs:   nil,
 		}}}
 		server := NewApiServer(&emptyStore, testInfo)
-
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusOK)
 	})
 
 	t.Run("returns 401 Unauthorized on invalid credentials", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+		request, _ := http.NewRequest(http.MethodGet, DashboardPath, nil)
 		request.SetBasicAuth("some", "other")
 		response := httptest.NewRecorder()
-		emptyStore := StubLogStore{[]AppAccessLogs{}}
+		emptyStore := StubLogStore{[]App{}}
 		server := NewApiServer(&emptyStore, testInfo)
-
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
 	})
 
 	t.Run("returns StatusNotFound on valid credentials and empty store", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+		request, _ := http.NewRequest(http.MethodGet, DashboardPath, nil)
 		request.SetBasicAuth(testInfo.Username, testInfo.Password)
 		response := httptest.NewRecorder()
-		emptyStore := StubLogStore{[]AppAccessLogs{}}
+		emptyStore := StubLogStore{[]App{}}
 		server := NewApiServer(&emptyStore, testInfo)
-
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusNotFound)
@@ -70,7 +76,7 @@ func TestGETLogsAndHealth(t *testing.T) {
 		{Raw: "log b2"},
 	}
 	store := StubLogStore{
-		[]AppAccessLogs{
+		[]App{
 			{"appa", HEALTHY, wantedLogsAppA},
 			{"appb", UNHEALTHY, wantedLogsAppB},
 		},

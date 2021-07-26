@@ -11,11 +11,12 @@ import (
 )
 
 const HomePath = "/"
-const AssetsPath = "/asset/"
-const ApiAppsPath = "/apps/"
-const ApiDashboardPath = "/dashboard/"
+const DashboardPath = "/dashboard/"
 const DashboardAssetsPath = "/dashboard/asset/"
 const DashboardRawLogsPath = "/dashboard/rawlogs/"
+const DashboardLogsPath = "/dashboard/logs/"
+const DashboardStatsPath = "/dashboard/stats/"
+const DashboardReqsPath = "/dashboard/reqs/"
 const ApiAccessLogsPath = "/logs/"
 const ApiRawLogsPath = "/rawlogs/"
 const ApiHealthPath = "/health/"
@@ -23,16 +24,11 @@ const ApiHealthPath = "/health/"
 type AccessLogStore interface {
 	GetAppNames() []string
 	GetApps() Apps
+	GetApp(name string) *App
 	GetAccessLogs(name string) AccessLogs
 	RecordAccessLog(name string, value AccessLog)
 	GetHealth(name string) HealthCheck
 	RecordHealth(name string, check HealthCheck)
-}
-
-type AppAccessLogs struct {
-	App    string      `json:"app"`
-	Health HealthCheck `json:"health"`
-	Logs   AccessLogs  `json:"logs"`
 }
 
 type ApiServer struct {
@@ -53,33 +49,105 @@ func NewApiServer(store AccessLogStore, info SecurityUserInfo) *ApiServer {
 	s.store = store
 
 	router := http.NewServeMux()
-	router.Handle(ApiAppsPath, http.HandlerFunc(s.appsHandler))
-	router.Handle(ApiDashboardPath, http.HandlerFunc(basicAuth(s.rootHandler, info)))
+	// Dashboard
+	router.Handle(DashboardPath, http.HandlerFunc(basicAuth(s.dashboardHandler, info)))
 	router.Handle(DashboardRawLogsPath, http.HandlerFunc(basicAuth(s.rawLogsHandler, info)))
+	router.Handle(DashboardLogsPath, http.HandlerFunc(basicAuth(s.dashboardLogsHandler, info)))
+	router.Handle(DashboardStatsPath, http.HandlerFunc(basicAuth(s.statsHandler, info)))
+	router.Handle(DashboardReqsPath, http.HandlerFunc(basicAuth(s.reqsHandler, info)))
+	fs := http.FileServer(http.Dir("asset/"))
+	router.Handle(DashboardAssetsPath, http.StripPrefix(DashboardAssetsPath, fs))
+
+	// API
+	//router.Handle(ApiAppsPath, http.HandlerFunc(s.appsHandler))
+	// TODO check to delete
 	router.Handle(ApiAccessLogsPath, http.HandlerFunc(s.logsHandler))
 	router.Handle(ApiRawLogsPath, http.HandlerFunc(s.rawLogsHandler))
 	router.Handle(ApiHealthPath, http.HandlerFunc(s.healthHandler))
-	// assets
-	fs := http.FileServer(http.Dir("asset/"))
-	router.Handle(AssetsPath, http.StripPrefix(AssetsPath, fs))
-	router.Handle(DashboardAssetsPath, http.StripPrefix(DashboardAssetsPath, fs))
-	// root
+
+	// Root
 	//router.Handle(HomePath, http.FileServer(http.Dir("./html")))
-	router.Handle(HomePath, http.HandlerFunc(basicAuth(s.rootHandler, info)))
+	router.Handle(HomePath, http.HandlerFunc(s.rootHandler))
 
 	s.Handler = router
 	return s
 }
 
 func (s *ApiServer) rootHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *ApiServer) dashboardHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "", http.StatusMethodNotAllowed)
+		return
+	}
 	apps := s.store.GetApps()
 	if apps == nil || len(apps) < 1 {
 		http.Error(w, "", http.StatusNotFound)
 		return
 	}
-
 	indexTempl := template.Must(template.ParseFiles("html/index.html"))
 	err := indexTempl.Execute(w, apps)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *ApiServer) statsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "", http.StatusMethodNotAllowed)
+		return
+	}
+	appName := strings.ToLower(strings.TrimPrefix(r.URL.Path, DashboardStatsPath))
+	app := s.store.GetApp(appName)
+	if app == nil {
+		http.Error(w, "", http.StatusNotFound)
+		return
+	}
+
+	stats := app.GetIpStatsSorted()
+	indexTempl := template.Must(template.ParseFiles("html/ipstats.html"))
+	err := indexTempl.Execute(w, stats)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *ApiServer) reqsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "", http.StatusMethodNotAllowed)
+		return
+	}
+	appName := strings.ToLower(strings.TrimPrefix(r.URL.Path, DashboardReqsPath))
+	app := s.store.GetApp(appName)
+	if app == nil {
+		http.Error(w, "", http.StatusNotFound)
+		return
+	}
+
+	stats := app.GetLogCountPerDay()
+	indexTempl := template.Must(template.ParseFiles("html/reqsPerDay.html"))
+	err := indexTempl.Execute(w, stats)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *ApiServer) dashboardLogsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "", http.StatusMethodNotAllowed)
+		return
+	}
+	appName := strings.ToLower(strings.TrimPrefix(r.URL.Path, DashboardLogsPath))
+	app := s.store.GetApp(appName)
+	if app == nil {
+		http.Error(w, "", http.StatusNotFound)
+		return
+	}
+
+	indexTempl := template.Must(template.ParseFiles("html/logs.html"))
+	err := indexTempl.Execute(w, app.GetLogsSorted())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -96,7 +164,13 @@ func (s *ApiServer) logsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ApiServer) rawLogsHandler(w http.ResponseWriter, r *http.Request) {
-	appName := strings.ToLower(strings.TrimPrefix(r.URL.Path, ApiRawLogsPath))
+	appName := strings.ToLower(r.URL.Path)
+	if strings.Contains(appName, ApiRawLogsPath) {
+		appName = strings.TrimPrefix(appName, ApiRawLogsPath)
+	}
+	if strings.Contains(appName, DashboardRawLogsPath) {
+		appName = strings.TrimPrefix(appName, DashboardRawLogsPath)
+	}
 	switch r.Method {
 	case http.MethodGet:
 		s.showRawLogs(w, appName)
@@ -111,22 +185,6 @@ func (s *ApiServer) healthHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		s.showHealth(w, name)
 	}
-}
-
-func (s *ApiServer) appsHandler(w http.ResponseWriter, r *http.Request) {
-	apps := s.store.GetApps()
-	if apps == nil || len(apps) < 1 {
-		http.Error(w, "", http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("content-type", jsonContentType)
-	json.NewEncoder(w).Encode(apps)
-}
-
-func (s *ApiServer) assetsHandler(writer http.ResponseWriter, request *http.Request) {
-	fs := http.FileServer(http.Dir("assets/"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
 }
 
 func (s *ApiServer) showLogs(w http.ResponseWriter, name string) {

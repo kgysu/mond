@@ -22,29 +22,6 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 	server.ServeHTTP(httptest.NewRecorder(), newPostLogRequest(app))
 	server.ServeHTTP(httptest.NewRecorder(), newPostLogRequest("Other"))
 
-	t.Run("get Apps", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, ApiAppsPath, nil)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		assertStatus(t, response.Code, http.StatusOK)
-		got := decodeBodyToApps(t, response.Body)
-		want := Apps{
-			{
-				App:    app,
-				Health: HealthCheck{Status: "UP", Timestamp: 1},
-				Logs:   AccessLogs{{Raw: SampleLogA1},{Raw: SampleLogA1},{Raw: SampleLogA1}},
-			},
-			{
-				App:    "other",
-				Health: HealthCheck{},
-				Logs:   AccessLogs{{Raw: SampleLogA1}},
-			},
-		}
-		assertApps(t, got, want)
-	})
-
 	t.Run("get logs", func(t *testing.T) {
 		response := httptest.NewRecorder()
 		server.ServeHTTP(response, newGetLogsRequest(app))
@@ -56,7 +33,9 @@ func TestRecordingLogsAndRetrievingThem(t *testing.T) {
 			{Raw: SampleLogA1},
 			{Raw: SampleLogA1},
 		}
-		assertAccessLogsEquals(t, got, want)
+		if len(got) != len(want) {
+			t.Errorf("not equal logs got %d want %d", len(got), len(want))
+		}
 	})
 
 	t.Run("get health", func(t *testing.T) {

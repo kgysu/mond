@@ -31,3 +31,33 @@ a {
     align-content: center;
     /*background-color: red;*/
 }
+
+
+/* Tables */
+#ipstats {
+    font-family: Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#ipstats td, #ipstats th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+#ipstats tr:nth-child(even) {
+    background-color: #3f3f3f;
+}
+
+#ipstats tr:hover {
+    background-color: #555;
+}
+
+#ipstats th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    /*background-color: #04AA6D;*/
+    background-color: #198754;
+    color: white;
+}

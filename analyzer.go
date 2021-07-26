@@ -2,15 +2,19 @@ package mond
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"time"
 )
 
+var systemTZ = os.Getenv("TZ")
+
 func ParseRawLog(raw string) AccessLog {
 	accessLog := new(AccessLog)
 	accessLog.Ip = findIp(raw)
 	accessLog.Timestamp = findTimeAndParse(raw)
+	accessLog.Unix = time.Now().Unix()
 	accessLog.Status = findStatus(raw)
 	path, _, _ := findPathMethodHttp(raw)
 	accessLog.Path = path
@@ -28,15 +32,31 @@ func findTimeAndParse(raw string) int64 {
 	timeReg := regexp.MustCompile(`\d{2}/.{2,3}/\d{4}:\d{2}:\d{2}:\d{2}\s.{5}`)
 	timeString := timeReg.FindString(raw)
 	if timeString != "" {
-		t, err := time.Parse("02/Jan/2006:15:04:05 -0700", timeString)
+		var t time.Time
+		var err error
+		l := getLocalTimeZone()
+		if l == nil {
+			t, err = time.Parse("02/Jan/2006:15:04:05 -0700", timeString)
+		} else {
+			t, err = time.ParseInLocation("02/Jan/2006:15:04:05 -0700", timeString, l)
+		}
 		if err != nil {
-			fmt.Printf("cannot parse time %q caused by %v", timeString, err)
+			fmt.Printf("cannot parse time %q caused by %v\n", timeString, err)
 			return 0
 		} else {
 			return t.Unix()
 		}
 	}
 	return 0
+}
+
+func getLocalTimeZone() *time.Location {
+	l, err := time.LoadLocation(systemTZ)
+	if err != nil {
+		fmt.Printf("cannot load local timezone %q caused by %v\n", systemTZ, err)
+		return nil
+	}
+	return l
 }
 
 func findStatus(raw string) string {

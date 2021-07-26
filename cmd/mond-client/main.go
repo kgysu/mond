@@ -145,7 +145,7 @@ func startReportingHealth(appName, reportUrl string, websites []string) {
 			for k, v := range results {
 				status, err := mond.ReportHealthCheck(mond.Report, reportHealthUrl, v)
 				if err != nil {
-					fmt.Printf("problem reporting health: %v", err)
+					fmt.Printf("problem reporting health: %v\n", err)
 				}
 				if status != http.StatusAccepted {
 					fmt.Printf("got status=%d want 202 \n", status)

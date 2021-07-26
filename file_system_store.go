@@ -69,13 +69,21 @@ func initialiseAppsDBFile(file *os.File) error {
 func (f *FileSystemAppsStore) GetAppNames() []string {
 	var apps []string
 	for _, v := range f.apps {
-		apps = append(apps, v.App)
+		apps = append(apps, v.Name)
 	}
 	return apps
 }
 
 func (f *FileSystemAppsStore) GetApps() Apps {
 	return f.apps
+}
+
+func (f *FileSystemAppsStore) GetApp(name string) *App {
+	app := f.apps.Find(name)
+	if app != nil {
+		return app
+	}
+	return nil
 }
 
 func (f *FileSystemAppsStore) GetAccessLogs(name string) AccessLogs {
@@ -91,8 +99,8 @@ func (f *FileSystemAppsStore) RecordAccessLog(name string, log AccessLog) {
 	if app != nil {
 		app.Logs = append(app.Logs, log)
 	} else {
-		f.apps = append(f.apps, AppAccessLogs{
-			App:  name,
+		f.apps = append(f.apps, App{
+			Name: name,
 			Logs: AccessLogs{log},
 		})
 	}
@@ -112,8 +120,8 @@ func (f *FileSystemAppsStore) RecordHealth(name string, check HealthCheck) {
 	if app != nil {
 		app.Health = check
 	} else {
-		f.apps = append(f.apps, AppAccessLogs{
-			App:    name,
+		f.apps = append(f.apps, App{
+			Name:   name,
 			Health: check,
 		})
 	}
