@@ -6,6 +6,7 @@ import (
 	mond "mond-api"
 	"net/http"
 	"os"
+	"time"
 )
 
 const dbFileNameEnv = "MOND_DB_FILE_NAME"
@@ -25,6 +26,10 @@ func main() {
 	defer closeFile()
 
 	server := mond.NewApiServer(store, checkEnvSecurityInfo())
+	store.RecordHealth(mond.MondAppName, mond.HealthCheck{
+		Status:    "UP",
+		Timestamp: time.Now().Unix(),
+	})
 	log.Fatal(http.ListenAndServe(addrFromEnv(), server))
 }
 

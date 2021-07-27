@@ -19,13 +19,16 @@ var testInfo = SecurityUserInfo{
 
 func TestGETHome(t *testing.T) {
 
-	t.Run("returns OK on HomePath", func(t *testing.T) {
+	t.Run("returns Redirect on HomePath", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, HomePath, nil)
 		response := httptest.NewRecorder()
 		server := NewApiServer(&StubLogStore{}, testInfo)
 		server.ServeHTTP(response, request)
 
-		assertStatus(t, response.Code, http.StatusOK)
+		assertStatus(t, response.Code, http.StatusMovedPermanently)
+		if response.Header().Get("Location") != DashboardPath {
+			t.Errorf("Header Location not set, got %v\n", response.Header())
+		}
 	})
 
 	t.Run("returns Dashboard on valid credentials", func(t *testing.T) {

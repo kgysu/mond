@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 )
 
+const MondAppName = "mond"
 const HomePath = "/"
 const DashboardPath = "/dashboard/"
 const DashboardAssetsPath = "/dashboard/asset/"
@@ -67,7 +69,8 @@ func NewApiServer(store AccessLogStore, info SecurityUserInfo) *ApiServer {
 
 	// Root
 	//router.Handle(HomePath, http.FileServer(http.Dir("./html")))
-	router.Handle(HomePath, http.HandlerFunc(s.rootHandler))
+	//router.Handle(HomePath, http.HandlerFunc(s.rootHandler))
+	router.Handle(HomePath, http.RedirectHandler(DashboardPath, http.StatusMovedPermanently))
 
 	s.Handler = router
 	return s
@@ -87,6 +90,8 @@ func (s *ApiServer) dashboardHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusNotFound)
 		return
 	}
+	s.RecordDashboardAccess(r)
+
 	indexTempl := template.Must(template.ParseFiles("html/index.html"))
 	err := indexTempl.Execute(w, apps)
 	if err != nil {
@@ -105,6 +110,7 @@ func (s *ApiServer) statsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusNotFound)
 		return
 	}
+	s.RecordDashboardAccess(r)
 
 	stats := app.GetIpStatsSorted()
 	indexTempl := template.Must(template.ParseFiles("html/ipstats.html"))
@@ -125,6 +131,7 @@ func (s *ApiServer) reqsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusNotFound)
 		return
 	}
+	s.RecordDashboardAccess(r)
 
 	stats := app.GetLogCountPerDay()
 	indexTempl := template.Must(template.ParseFiles("html/reqsPerDay.html"))
@@ -145,12 +152,26 @@ func (s *ApiServer) dashboardLogsHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "", http.StatusNotFound)
 		return
 	}
+	s.RecordDashboardAccess(r)
 
 	indexTempl := template.Must(template.ParseFiles("html/logs.html"))
 	err := indexTempl.Execute(w, app.GetLogsSorted())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (s *ApiServer) RecordDashboardAccess(r *http.Request) {
+	user,_, ok := r.BasicAuth()
+	s.store.RecordAccessLog(MondAppName, AccessLog{
+		Timestamp: 0,
+		Unix:      time.Now().Unix(),
+		Ip:        user,
+		Path:      r.URL.Path,
+		RemoteIp:  r.RemoteAddr,
+		Status:    fmt.Sprint(ok),
+		Raw:       r.Referer(),
+	})
 }
 
 func (s *ApiServer) logsHandler(w http.ResponseWriter, r *http.Request) {

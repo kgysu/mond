@@ -142,7 +142,7 @@ func startReportingHealth(appName, reportUrl string, websites []string) {
 		case <-ticker.C:
 			// do check
 			results := mond.CheckWebsites(mond.CheckWebsite, websites)
-			for k, v := range results {
+			for _, v := range results {
 				status, err := mond.ReportHealthCheck(mond.Report, reportHealthUrl, v)
 				if err != nil {
 					fmt.Printf("problem reporting health: %v\n", err)
@@ -151,7 +151,7 @@ func startReportingHealth(appName, reportUrl string, websites []string) {
 					fmt.Printf("got status=%d want 202 \n", status)
 				} else {
 					// successfully reported TODO check if needed
-					fmt.Printf("reported %s=%v \n", k, v)
+					//fmt.Printf("reported %s=%v \n", k, v)
 				}
 			}
 		case <-quit:
