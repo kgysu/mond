@@ -16,7 +16,7 @@ const addrEnv = "MOND_SERVE_ADDR"
 const defaultDbFileName = "apps.db.json"
 const defaultUser = "test"
 const defaultPassword = "1234"
-const defaultAddr = ":8080"
+const defaultAddr = ":8080" // TODO: change for local testing, prod=8080
 
 func main() {
 	store, closeFile, err := mond.FileSystemAppsStoreFromFile(dbFileNameFromEnv())

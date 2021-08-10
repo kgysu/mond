@@ -51,7 +51,7 @@ func (a *App) GetLogCountPerDay() map[string]int {
 	var logsPerDay map[string]int
 	logsPerDay = map[string]int{}
 	for _, l := range a.Logs {
-		logTime := time.Unix(l.Timestamp, 0)
+		logTime := time.Unix(l.Unix, 0)
 		y, m, d := logTime.Date()
 		date := fmt.Sprintf("%d-%d-%d", y, m, d)
 		logsPerDay[date]++
